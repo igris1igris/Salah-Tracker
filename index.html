@@ -872,6 +872,8 @@
     </div>
 </header>
 
+
+
 <!-- ================= TIME & DATE SECTION ================= -->
 <section class="date-time-section">
     <div class="date-time-card">
@@ -891,7 +893,151 @@
 </section>
 
 
+
+<!-- ================= LOCATION & PRAYER TIMES (Responsive, Real-Time) ================= -->
+<section id="prayer-location-card" style="width:90%;max-width:900px;margin:24px auto 0 auto;">
+  <div style="background:linear-gradient(90deg,#eef7ff,#e9fdf4);border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+    <div style="display:flex;align-items:center;gap:10px;font-size:1.3em;font-weight:bold;flex-wrap:wrap;">
+      <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="location" style="width:20px;height:20px;">
+      <span id="auto-city">Getting location…</span>
+      <span class="country" id="auto-country"></span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:15px;">
+      <div class="tag" id="auto-lat">🌐 Lat: —</div>
+      <div class="tag" id="auto-lng">🌐 Lng: —</div>
+      <div class="tag" id="auto-timezone">🕒 —</div>
+    </div>
+    <div class="lofooter" style="margin-top:15px;font-size:0.85em;color:#555;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:5px;">
+      <span id="auto-updated">Last updated: —</span>
+      <div class="status">
+        <div class="status-dot"></div>
+        Location active
+      </div>
+    </div>
+    
+  </div>
+  <div style="margin-top:18px;background:#fff;border-radius:12px;padding:18px 12px;box-shadow:0 2px 8px rgba(21,128,61,0.08);">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <span style="color:#15803d;font-weight:600;">Next Prayer</span>
+        <span id="auto-next-prayer" style="font-size:1.3em;font-weight:bold;color:#0d47a1;margin-left:8px;">—</span>
+        <span id="auto-next-time" class="time-badge" style="background:#fff3cd;color:#5a4b00;padding:3px 8px;border-radius:6px;font-size:0.95em;font-weight:bold;margin-left:6px;">--:--</span>
+      </div>
+      <div>
+        <span style="color:#15803d;font-weight:600;">Countdown:</span>
+        <span id="auto-countdown" style="font-family:monospace;font-size:1.2em;">--:--:--</span>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:rgba(202,138,4,0.07);">
+            <th style="text-align:left;padding:8px 6px;color:#a16207;">Prayer</th>
+            <th style="text-align:left;padding:8px 6px;color:#a16207;">Adhan</th>
+          </tr>
+        </thead>
+        <tbody id="auto-times-body">
+          <!-- JS will fill -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Move the prayer-card directly below and adjust margin-top -->
+<section class="prayer-card" style="margin:18px auto 0 auto;">
+    <div class="prayer-section">
+        <span class="label">Current Prayer</span>
+        <span class="current-prayer">Fajr</span>
+    </div>
+    <div class="prayer-section" style="text-align: right;">
+        <span class="label">Next Prayer</span>
+        <span class="next-prayer">Dhuhur <span class="time-badge">12:15</span></span>
+    </div>
+</section>
+
+<!-- ================= PRAYER TIMES GRID (DYNAMIC) ================= -->
+<section class="prayer-times" id="prayer-times"></section>
+
+<script>
+// ========== DYNAMIC PRAYER TIMES GRID ==========
+
+// Prayer order and icons
+const prayerOrderGrid = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
+const prayerIconsGrid = [
+    "<i class='bx bx-star'></i>",
+    "<i class='bx bx-sun'></i>",
+    "<i class='bx bx-sun'></i>",
+    "<i class='bx bx-cloud'></i>",
+    "<i class='bx bx-moon'></i>"
+];
+
+// Fill the grid with times and highlight current/next
+function fillPrayerGrid(times) {
+    const container = document.getElementById('prayer-times');
+    if (!container) return;
+    container.innerHTML = '';
+    // Get current and next prayer index
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const timeList = prayerOrderGrid.map(prayer => {
+        const t = times[prayer];
+        if (!t) return 0;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    });
+    let currentIdx = 0;
+    for (let i = 0; i < timeList.length; i++) {
+        if (currentMinutes >= timeList[i]) currentIdx = i;
+    }
+    let nextIdx = (currentIdx + 1) % timeList.length;
+
+    // Build grid
+    prayerOrderGrid.forEach((prayer, i) => {
+        const box = document.createElement('div');
+        box.className = 'prayer-box';
+        if (i === currentIdx) box.classList.add('current');
+        if (i === nextIdx) box.classList.add('next');
+        box.innerHTML = `
+            <div class="icon${prayer === "Dhuhr" ? " sun" : ""}">${prayerIconsGrid[i]}</div>
+            <h3>${prayer}</h3>
+            <p class="time">${times[prayer] || '--:--'}</p>
+            ${i === currentIdx ? "<span class='badge-green'>Current</span>" : ""}
+            ${i === nextIdx ? "<span class='badge-yellow'>Next</span>" : ""}
+        `;
+        container.appendChild(box);
+    });
+}
+
+// Hook into auto-location prayer times
+function updatePrayerGridFromAuto(times) {
+    if (times && times.Fajr) fillPrayerGrid(times);
+}
+
+// Update every minute for highlight
+setInterval(() => updatePrayerGridFromAuto(prayerTimings), 60000);
+
+// Call after prayerTimings is set in fetchLocationAndPrayerTimes
+function fillPrayerTable(times) {
+  const order = ["Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha"];
+  autoTimesBody.innerHTML = '';
+  order.forEach(name=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding:10px 6px;font-weight:600;">${name}</td>
+      <td style="padding:10px 6px;font-family:monospace;font-weight:600;">${times[name]}</td>`;
+    autoTimesBody.appendChild(tr);
+  });
+  // Add this line:
+  updatePrayerGridFromAuto(times);
+}
+
+// Also update on page load (in case location loads late)
+setTimeout(() => updatePrayerGridFromAuto(prayerTimings), 1500);
+</script>
+
+
 <!-- ================= LOCATION SECTION ================= -->
+<!--
 <section class="location">
     <div class="location-header">
         <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="location">
@@ -911,21 +1057,13 @@
         </div>
     </div>
 </section>
+-->
 
 <!-- ================= CURRENT/NEXT PRAYER ================= -->
-<section class="prayer-card">
-    <div class="prayer-section">
-        <span class="label">Current Prayer</span>
-        <span class="current-prayer">Fajr</span>
-    </div>
-    <div class="prayer-section" style="text-align: right;">
-        <span class="label">Next Prayer</span>
-        <span class="next-prayer">Dhuhur <span class="time-badge">12:15</span></span>
-    </div>
-</section>
+
 
 <!-- ================= PRAYER TIMES ================= -->
-<section class="prayer-times">
+<!--<section class="prayer-times">
     <div class="prayer-box current">
         <div class="icon"><i class='bx bx-star'></i></div>
         <h3>Fajr</h3>
@@ -958,9 +1096,9 @@
         <p class="time">19:45</p>
     </div>
 </section>
-
+  -->
 <!-- ================= QIBLA SECTION ================= -->
-<section class="qibla-section">
+<!-- <section class="qibla-section"> 
     <h2 class="qibla-title"><i class='bx bx-compass'></i> Qibla Direction</h2>
     <div class="qibla-compass">
         <div class="compass-circle">
@@ -979,7 +1117,7 @@
         </div>
     </div>
 
-    <!-- ✅ Fixed: Qibla stats now valid HTML -->
+   
     <div class="qibla-stats">
         <div class="stat-box yellow">
             <span class="label">Qibla Direction</span>
@@ -1005,6 +1143,7 @@
         The red indicator shows your device's current orientation.
     </p>
 </section>
+-->
     <!-- Quranic Verses Section -->
     <section class="salah-verses">
         <h3 class="verses-title"><i class='bx bx-book-open'></i> Quranic Verses About Salah</h3>
@@ -1252,6 +1391,147 @@ setInterval(() => {
     currentVerse = (currentVerse + 1) % verses.length;
     verses[currentVerse].classList.add('active');
 }, 5000);
+
+<!-- ================= AUTO LOCATION & PRAYER TIMES ================== -->
+const autoCity = document.getElementById('auto-city');
+const autoCountry = document.getElementById('auto-country');
+const autoLat = document.getElementById('auto-lat');
+const autoLng = document.getElementById('auto-lng');
+const autoTimezone = document.getElementById('auto-timezone');
+const autoUpdated = document.getElementById('auto-updated');
+const autoNextPrayer = document.getElementById('auto-next-prayer');
+const autoNextTime = document.getElementById('auto-next-time');
+const autoCountdown = document.getElementById('auto-countdown');
+const autoTimesBody = document.getElementById('auto-times-body');
+
+let prayerTimings = {};
+let nextPrayerName = '';
+let nextPrayerTime = '';
+
+function pad(n){return String(n).padStart(2,'0');}
+function parseHHMM(s){const m=s.match(/(\d{1,2}):(\d{2})/);if(!m)return null;return{h:+m[1],m:+m[2]};}
+function toDateToday(hhmm){const now=new Date();const d=new Date(now);d.setHours(hhmm.h,hhmm.m,0,0);return d;}
+
+function fillPrayerTable(times) {
+  const order = ["Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha"];
+  autoTimesBody.innerHTML = '';
+  order.forEach(name=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="padding:10px 6px;font-weight:600;">${name}</td>
+      <td style="padding:10px 6px;font-family:monospace;font-weight:600;">${times[name]}</td>`;
+    autoTimesBody.appendChild(tr);
+  });
+}
+
+function computeNextPrayer(times) {
+  const order = ["Fajr","Dhuhr","Asr","Maghrib","Isha"];
+  const now = new Date();
+  const items = order.map(n=>{
+    const hhmm = parseHHMM(times[n]);
+    return { name: n, at: toDateToday(hhmm) };
+  });
+  for(const it of items){
+    if(it.at <= now) it.at.setDate(it.at.getDate() + 1);
+  }
+  items.sort((a,b)=>a.at-b.at);
+  return items[0];
+}
+
+let countdownTimer = null;
+function startCountdown(next) {
+  if(countdownTimer) clearInterval(countdownTimer);
+  const tick = ()=>{
+    const now = new Date();
+    let diff = (next.at - now) / 1000;
+    if(diff < 0) diff = 0;
+    const h = Math.floor(diff/3600);
+    const m = Math.floor((diff%3600)/60);
+    const s = Math.floor(diff%60);
+    autoCountdown.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    if(diff<=0){ clearInterval(countdownTimer); }
+  };
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+
+async function fetchLocationAndPrayerTimes() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(async function(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      autoLat.textContent = `🌐 Lat: ${lat.toFixed(4)}`;
+      autoLng.textContent = `🌐 Lng: ${lng.toFixed(4)}`;
+      autoUpdated.textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+      // Get city/country using OpenStreetMap Nominatim
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const geoData = await geoRes.json();
+        if (geoData.address) {
+          autoCity.textContent = geoData.address.city || geoData.address.town || geoData.address.village || geoData.address.hamlet || 'Unknown';
+          autoCountry.textContent = geoData.address.country || '';
+        }
+      } catch (e) {
+        autoCity.textContent = 'Unknown';
+        autoCountry.textContent = '';
+      }
+
+      // Get timezone
+      try {
+        const tzRes = await fetch(`https://api.aladhan.com/v1/timeZone/${lat}/${lng}`);
+        const tzData = await tzRes.json();
+        autoTimezone.textContent = `🕒 ${tzData.data.timezone}`;
+      } catch (e) {
+        autoTimezone.textContent = '🕒 —';
+      }
+
+      // Get prayer times
+      try {
+        const today = new Date();
+        const dateStr = `${today.getDate()}-${today.getMonth()+1}-${today.getFullYear()}`;
+        const res = await fetch(`https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=2`);
+        const data = await res.json();
+        if (data.data && data.data.timings) {
+          prayerTimings = data.data.timings;
+          fillPrayerTable(prayerTimings);
+          const next = computeNextPrayer(prayerTimings);
+          nextPrayerName = next.name;
+          nextPrayerTime = prayerTimings[next.name];
+          autoNextPrayer.textContent = nextPrayerName;
+          autoNextTime.textContent = nextPrayerTime;
+          startCountdown(next);
+        }
+      } catch (e) {
+        autoNextPrayer.textContent = '—';
+        autoNextTime.textContent = '--:--';
+        autoCountdown.textContent = '--:--:--';
+      }
+    }, function() {
+      autoCity.textContent = 'Location denied';
+      autoCountry.textContent = '';
+      autoLat.textContent = '🌐 Lat: —';
+      autoLng.textContent = '🌐 Lng: —';
+      autoTimezone.textContent = '🕒 —';
+      autoUpdated.textContent = 'Last updated: —';
+      autoNextPrayer.textContent = '—';
+      autoNextTime.textContent = '--:--';
+      autoCountdown.textContent = '--:--:--';
+      autoTimesBody.innerHTML = '';
+    });
+  } else {
+    autoCity.textContent = 'No geolocation';
+    autoCountry.textContent = '';
+    autoLat.textContent = '🌐 Lat: —';
+    autoLng.textContent = '🌐 Lng: —';
+    autoTimezone.textContent = '🕒 —';
+    autoUpdated.textContent = 'Last updated: —';
+    autoNextPrayer.textContent = '—';
+    autoNextTime.textContent = '--:--';
+    autoCountdown.textContent = '--:--:--';
+    autoTimesBody.innerHTML = '';
+  }
+}
+fetchLocationAndPrayerTimes();
 </script>
 </body>
 </html>
